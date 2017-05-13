@@ -1,7 +1,6 @@
 ﻿using UnityEngine;
-using UnityEngine.UI;
 using System.IO;
-
+using UnityEngine.UI;
 public class DeviceCam : MonoBehaviour {
 
 	private WebCamDevice[] devices;
@@ -9,29 +8,40 @@ public class DeviceCam : MonoBehaviour {
 	private WebCamTexture frontFacingCam;
 	private bool isFrontCamOn = false;
 	private bool isCamPaused = false;
-	private RawImage webCamImage;
+	private Renderer webCamRenderer;
 	private WebCamTexture webcamTexture;
 	private int appWidth;
 	private int appHeight;
 	private float screenRatio;
 	private int z_rotate;
-	private VisionAPICallerGUI visionAPI;
+	//private Quaternion rotFix;
+	private VisionAPICaller visionAPI;
+	private int yRotLandscapeCam = 180;
+	private int yRotPortraitCam = 90;
+	public GameObject webCamPlane;
 
-	void Start() {
-		visionAPI = this.GetComponent<VisionAPICallerGUI> ();
-		webCamImage = this.GetComponent<RawImage> ();
+	// Use this for initialization
+	void Start () {
+		visionAPI = this.GetComponent<VisionAPICaller> ();
+		webCamRenderer = webCamPlane.GetComponent<Renderer> ();
 		screenRatio = (float)Screen.width / (float)Screen.height;
+		//Input.gyro.enabled = true; 
 		SetUpCamera ();
 	}
 
-	void Update() {
-		RotateCamera ();
+	// Update is called once per frame
+	void Update () {
 		if (webcamTexture != null) {
 			appWidth = webcamTexture.width;
 			appHeight = webcamTexture.height;
 		} else {
-			SetUpCamera ();
+			SetUpCamera();
 		}
+		RotateCamera ();
+		/*
+		rotFix = new Quaternion (Input.gyro.attitude.x, Input.gyro.attitude.y, -Input.gyro.attitude.z, -Input.gyro.attitude.w);
+		this.transform.localRotation = rotFix;
+		*/
 	}
 
 	private void SetUpCamera(){
@@ -53,7 +63,7 @@ public class DeviceCam : MonoBehaviour {
 					webcamTexture = frontFacingCam;
 					isFrontCamOn = true;
 				}
-				webCamImage.texture = webcamTexture;
+				webCamRenderer.material.mainTexture = webcamTexture;
 				webcamTexture.Play ();
 			}
 		} else {
@@ -63,15 +73,19 @@ public class DeviceCam : MonoBehaviour {
 
 	private void RotateCamera(){
 		if (webcamTexture != null) {
-			float scaleY = webcamTexture.videoVerticallyMirrored ? -1f : 1f;
-			webCamImage.rectTransform.localScale = new Vector3 (1f, scaleY, 1f);
 			z_rotate = -webcamTexture.videoRotationAngle;
-			webCamImage.rectTransform.localEulerAngles = new Vector3 (0, 0, z_rotate);
-			float z_rotate_Rads = (Mathf.Abs (z_rotate) * Mathf.PI) / 180;
-			if (Mathf.Abs (Mathf.Sin (z_rotate_Rads)) == 1) {
-				webCamImage.rectTransform.localScale = new Vector3 (1f / screenRatio, scaleY, 1f);
+			if (z_rotate == -90) {
+				webCamRenderer.transform.localEulerAngles = new Vector3 (0, yRotPortraitCam, -z_rotate);
+				webCamRenderer.transform.localScale = new Vector3 (1f , 1f, screenRatio);
+			} else if (z_rotate == -270) {
+				webCamRenderer.transform.localEulerAngles = new Vector3 (0, -yRotPortraitCam, -z_rotate);
+				webCamRenderer.transform.localScale = new Vector3 (1f, 1f, screenRatio);
+			} else if (z_rotate == -180) {
+				webCamRenderer.transform.localEulerAngles = new Vector3 (90, yRotLandscapeCam, z_rotate);
+				webCamRenderer.transform.localScale = new Vector3 (1f/screenRatio, 1f, 1f);
 			} else {
-				webCamImage.rectTransform.localScale = new Vector3 (1f, scaleY, 1f);
+				webCamRenderer.transform.localEulerAngles = new Vector3 (-90, yRotLandscapeCam, z_rotate);
+				webCamRenderer.transform.localScale = new Vector3 (1f/screenRatio, 1f, 1f);
 			}
 		}
 	}
@@ -117,8 +131,7 @@ public class DeviceCam : MonoBehaviour {
 		}
 		return arr2;
 	}
-
-
+		
 	public void TakePicture(){
 		if (webcamTexture != null) {
 			webcamTexture.Pause();
@@ -144,10 +157,14 @@ public class DeviceCam : MonoBehaviour {
 			webcamTexture.Stop ();
 			if (isFrontCamOn) {
 				webcamTexture = backFacingCam;
+				yRotLandscapeCam = 180;
+				yRotPortraitCam = 90;
 			} else {
 				webcamTexture = frontFacingCam;
+				yRotLandscapeCam = 0;
+				yRotPortraitCam = -90;
 			}
-			webCamImage.texture = webcamTexture;
+			webCamRenderer.material.mainTexture = webcamTexture;
 			webcamTexture.Play ();
 			isFrontCamOn = !isFrontCamOn;
 		}
@@ -163,6 +180,5 @@ public class DeviceCam : MonoBehaviour {
 			isCamPaused = !isCamPaused;
 		}
 	}
-
 
 }

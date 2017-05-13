@@ -1,24 +1,26 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.UI;
 using googleVisionAPI;
 
-public class VisionAPICaller : VisionRestAPI {
+public class VisionAPICaller : VisionRestAPI{
 
 	private string url = "https://vision.googleapis.com/v1/images:annotate?key=";
 	[SerializeField]
 	private string apiKey = "";
 	public int maxResults = 5;
-	private FeatureType featureType = FeatureType.FACE_DETECTION;
+	private FeatureType featureType = FeatureType.LABEL_DETECTION;
 	private Dictionary<string, string> headers;
 	[SerializeField]
-	private GameObject prefab3Dtext;
-	private Camera mainCamera;
+	private GameObject prefabUItext;
+	[SerializeField]
+	private Canvas guiCanvas;
 	float yOffset = 0f;
+	private UnityEngine.Color textColor = UnityEngine.Color.red;
 
 	//Use this for initialization
 	void Start () {
-		mainCamera = this.GetComponent<Camera> ();
 		headers = new Dictionary<string, string>();
 		headers.Add("Content-Type", "application/json; charset=UTF-8");
 
@@ -32,26 +34,30 @@ public class VisionAPICaller : VisionRestAPI {
 		if (this.apiKey == null) {
 			return;
 		}
-
 		string base64 = System.Convert.ToBase64String(jpg); //converts image(byte[]) to a base64 string
 
 		AnnotateImageRequests apiRequests = new AnnotateImageRequests();
 		apiRequests.requests = new List<AnnotateImageRequest>();
 
-		AnnotateImageRequest firstRequest = new AnnotateImageRequest();
-		firstRequest.image = new Image();
-		firstRequest.image.content = base64;
-		firstRequest.features = new List<Feature>();
-
-		Feature feature = new Feature();
-		feature.type = this.featureType.ToString();
-		feature.maxResults = this.maxResults;
-
-		firstRequest.features.Add(feature); 
-		apiRequests.requests.Add(firstRequest);
+		apiRequests.requests.Add(CreateImageRequest (base64, this.featureType)); //first Request
+		apiRequests.requests.Add(CreateImageRequest (base64, FeatureType.IMAGE_PROPERTIES)); //second Request
 
 		string jsonData = JsonUtility.ToJson(apiRequests, false);
 		StartCoroutine(SendPostRequestToVisionAPI(jsonData));
+	}
+
+	private AnnotateImageRequest CreateImageRequest(string base64, FeatureType featureType){
+		AnnotateImageRequest defineRequest = new AnnotateImageRequest();
+		defineRequest.image = new Image();
+		defineRequest.image.content = base64;
+		defineRequest.features = new List<Feature>();
+
+		Feature feature = new Feature();
+		feature.type = featureType.ToString();
+		feature.maxResults = this.maxResults;
+		defineRequest.features.Add(feature); 
+
+		return defineRequest;
 	}
 
 	private IEnumerator SendPostRequestToVisionAPI(string jsonData) {
@@ -59,25 +65,50 @@ public class VisionAPICaller : VisionRestAPI {
 			string url = this.url + this.apiKey;
 			byte[] postData = System.Text.Encoding.Default.GetBytes(jsonData); //converts json string to bytes(turns the string into a file)
 			//sends post request to google api servers
-			using(WWW www = new WWW(url, postData, headers)) { //using statement does automatic garbage collection for the variable being initialized(www).
+			using (WWW www = new WWW (url, postData, headers)) { //using statement does automatic garbage collection for the variable being initialized(www).
 				yield return www; //wait for returned json string from google servers
 				if (www.error == null) { //if no error
 					//Debug.Log(www.text.Replace("\n", "").Replace(" ", "")); //prints return json string(www.text) to Unity console, on one line with no spaces.
-					AnnotateImageResponses apiResponses = JsonUtility.FromJson<AnnotateImageResponses>(www.text); //takes www.text json and prarses it into above classes to be read from
-					DisplayResults(apiResponses);
+					AnnotateImageResponses apiResponses = JsonUtility.FromJson<AnnotateImageResponses> (www.text); //takes www.text json and prarses it into above classes to be read from
+					CalculateTextColor(apiResponses);
+					DisplayResults (apiResponses);
 				} else { //there was an error
-					Debug.Log("Error: " + www.error);
+					Debug.Log ("Error: " + www.error);
 				}
 			}
 		}
 	}
+		
+	private void CalculateTextColor(AnnotateImageResponses apiResponses){
+		if (apiResponses.responses.Count > 1) {
+			int redProp = 0;
+			int greenProp = 0;
+			int blueProp = 0;
+			int i;
+			for (i = 0; i < apiResponses.responses [1].imagePropertiesAnnotation.dominantColors.colors.Count; i++) {
+				redProp += apiResponses.responses [1].imagePropertiesAnnotation.dominantColors.colors [i].color.red;
+				greenProp += apiResponses.responses [1].imagePropertiesAnnotation.dominantColors.colors [i].color.green;
+				blueProp += apiResponses.responses [1].imagePropertiesAnnotation.dominantColors.colors [i].color.blue;
+			}
+			textColor.r = Mathf.Abs ((redProp / i) - 255) / 255f;
+			textColor.g = Mathf.Abs ((greenProp / i) - 255) / 255f;
+			textColor.b = Mathf.Abs ((blueProp / i) - 255) / 255f;
+			textColor.a = 1f;
+		}
+	}
+
+	private void CropPicture(){
+
+	}
 
 	private void PrintToScreen(string str){
-		Vector3 textLocation = mainCamera.ScreenToWorldPoint (new Vector3(Screen.width/2, (Screen.height * 0.75f), mainCamera.nearClipPlane+5f));
+		Vector3 textLocation = new Vector3(Screen.width/2, (Screen.height * 0.75f), 0f);
 		textLocation.y += yOffset;
-		GameObject text = Instantiate(prefab3Dtext, textLocation, transform.rotation);
-		text.GetComponent<TextMesh>().text = str;
-		yOffset -= 1f;
+		GameObject textUI = Instantiate(prefabUItext, textLocation, Quaternion.identity);
+		textUI.GetComponent<Text> ().text = str;
+		textUI.GetComponent<Text> ().color = textColor;
+		textUI.transform.SetParent(guiCanvas.transform);
+		yOffset -= textUI.GetComponent<Text> ().resizeTextMaxSize;
 	}
 
 	private void DisplayResults(AnnotateImageResponses apiResponses){
@@ -91,10 +122,6 @@ public class VisionAPICaller : VisionRestAPI {
 		ListImageColorsDetection(apiResponses);
 		ListCropHints(apiResponses);
 		ListWebDetection(apiResponses);
-	}
-
-	private void CropPicture(){
-
 	}
 
 	//Face detection response only
@@ -252,10 +279,10 @@ public class VisionAPICaller : VisionRestAPI {
 	public void DropDownList(int value){
 		switch (value) {
 		case 0:
-			this.featureType = FeatureType.FACE_DETECTION;
+			this.featureType = FeatureType.LABEL_DETECTION;
 			break;
 		case 1:
-			this.featureType = FeatureType.LABEL_DETECTION;
+			this.featureType = FeatureType.FACE_DETECTION;
 			break;
 		case 2:
 			this.featureType = FeatureType.LANDMARK_DETECTION;

@@ -298,10 +298,10 @@ namespace googleVisionAPI{
 
 		[System.Serializable]
 		public class Color {
-			public float red;
-			public float green;
-			public float blue;
-			public float alpha;
+			public int red;
+			public int green;
+			public int blue;
+			public int alpha;
 		}
 		//End<-ImageProperties
 

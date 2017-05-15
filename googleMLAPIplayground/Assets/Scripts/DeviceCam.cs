@@ -14,7 +14,7 @@ public class DeviceCam : MonoBehaviour {
 	private int appHeight;
 	private float screenRatio;
 	private int z_rotate;
-	//private Quaternion rotFix;
+	private Quaternion rotFix;
 	private VisionAPICaller visionAPI;
 	private int yRotLandscapeCam = 180;
 	private int yRotPortraitCam = 90;
@@ -25,7 +25,7 @@ public class DeviceCam : MonoBehaviour {
 		visionAPI = this.GetComponent<VisionAPICaller> ();
 		webCamRenderer = webCamPlane.GetComponent<Renderer> ();
 		screenRatio = (float)Screen.width / (float)Screen.height;
-		//Input.gyro.enabled = true; 
+		Input.gyro.enabled = true; 
 		SetUpCamera ();
 	}
 
@@ -38,10 +38,8 @@ public class DeviceCam : MonoBehaviour {
 			SetUpCamera();
 		}
 		RotateCamera ();
-		/*
 		rotFix = new Quaternion (Input.gyro.attitude.x, Input.gyro.attitude.y, -Input.gyro.attitude.z, -Input.gyro.attitude.w);
 		this.transform.localRotation = rotFix;
-		*/
 	}
 
 	private void SetUpCamera(){

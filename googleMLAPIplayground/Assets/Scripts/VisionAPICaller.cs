@@ -1,7 +1,6 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.UI;
 using googleVisionAPI;
 
 public class VisionAPICaller : VisionRestAPI{
@@ -13,14 +12,14 @@ public class VisionAPICaller : VisionRestAPI{
 	private FeatureType featureType = FeatureType.LABEL_DETECTION;
 	private Dictionary<string, string> headers;
 	[SerializeField]
-	private GameObject prefabUItext;
-	[SerializeField]
-	private Canvas guiCanvas;
-	float yOffset = 0f;
+	private GameObject prefab3Dtext;
+	private Camera mainCamera;
+	private float yOffset = 0f;
 	private UnityEngine.Color textColor = UnityEngine.Color.red;
 
 	//Use this for initialization
 	void Start () {
+		mainCamera = this.GetComponent<Camera> ();
 		headers = new Dictionary<string, string>();
 		headers.Add("Content-Type", "application/json; charset=UTF-8");
 
@@ -102,13 +101,12 @@ public class VisionAPICaller : VisionRestAPI{
 	}
 
 	private void PrintToScreen(string str){
-		Vector3 textLocation = new Vector3(Screen.width/2, (Screen.height * 0.75f), 0f);
+		Vector3 textLocation = mainCamera.ScreenToWorldPoint (new Vector3(Screen.width/2, (Screen.height * 0.9f), mainCamera.nearClipPlane+5f));
 		textLocation.y += yOffset;
-		GameObject textUI = Instantiate(prefabUItext, textLocation, Quaternion.identity);
-		textUI.GetComponent<Text> ().text = str;
-		textUI.GetComponent<Text> ().color = textColor;
-		textUI.transform.SetParent(guiCanvas.transform);
-		yOffset -= textUI.GetComponent<Text> ().resizeTextMaxSize;
+		GameObject text = Instantiate(prefab3Dtext, textLocation, transform.rotation);
+		text.GetComponent<TextMesh>().text = str;
+		text.GetComponent<TextMesh> ().color = textColor;
+		yOffset -= 1f;
 	}
 
 	private void DisplayResults(AnnotateImageResponses apiResponses){

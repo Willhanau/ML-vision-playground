@@ -1216,9 +1216,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   apiKey: AIzaSyDmLrQx_YY_5T7gyyFKV82heDo9oE50aVQ
   maxResults: 5
-  prefabUItext: {fileID: 1151880860715316, guid: 968c533ae17c94038999249e2b7b5c66,
+  prefab3Dtext: {fileID: 1883660003375152, guid: 73db46ad068b04e12b9d6efaadd9909f,
     type: 2}
-  guiCanvas: {fileID: 308623789}
 --- !u!114 &1206065652
 MonoBehaviour:
   m_ObjectHideFlags: 0

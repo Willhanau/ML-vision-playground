@@ -3,6 +3,7 @@ using System.IO;
 using UnityEngine.UI;
 public class DeviceCam : MonoBehaviour {
 
+	private VisionAPICaller visionAPI;
 	private WebCamDevice[] devices;
 	private WebCamTexture backFacingCam;
 	private WebCamTexture frontFacingCam;
@@ -10,35 +11,40 @@ public class DeviceCam : MonoBehaviour {
 	private bool isCamPaused = false;
 	private Renderer webCamRenderer;
 	private WebCamTexture webcamTexture;
+	private Quaternion rotFix;
 	private int appWidth;
 	private int appHeight;
-	private float screenRatio;
-	private int z_rotate;
-	private Quaternion rotFix;
-	private VisionAPICaller visionAPI;
-	private int yRotLandscapeCam = 180;
-	private int yRotPortraitCam = 90;
+	private int z_rotate = -90;
+	private int frontFacingCam_offset = 0;
+	#if UNITY_EDITOR
+	private float zScaler = 1f;
+	#else
+	private float zScaler = -1f;
+	#endif
+	private Vector3 webCamLocalScale;
+	private DeviceOrientation dOrientation;
 	public GameObject webCamPlane;
 
 	// Use this for initialization
 	void Start () {
 		visionAPI = this.GetComponent<VisionAPICaller> ();
 		webCamRenderer = webCamPlane.GetComponent<Renderer> ();
-		screenRatio = (float)Screen.width / (float)Screen.height;
-		Input.gyro.enabled = true; 
+		float ratio = (float)Screen.width / Screen.height;
+		this.transform.localScale = new Vector3 (1f, 1f/ratio, 1f);
+		webCamRenderer.transform.localEulerAngles = new Vector3 (-180, 90, -90);
+		webCamLocalScale = new Vector3(1f, 1f, zScaler);
+		webCamPlane.transform.localScale = webCamLocalScale;
+		Input.gyro.enabled = true;
+		rotFix = new Quaternion (Input.gyro.attitude.x, Input.gyro.attitude.y, -Input.gyro.attitude.z, -Input.gyro.attitude.w);
 		SetUpCamera ();
 	}
 
 	// Update is called once per frame
 	void Update () {
-		if (webcamTexture != null) {
-			appWidth = webcamTexture.width;
-			appHeight = webcamTexture.height;
-		} else {
-			SetUpCamera();
-		}
-		RotateCamera ();
-		rotFix = new Quaternion (Input.gyro.attitude.x, Input.gyro.attitude.y, -Input.gyro.attitude.z, -Input.gyro.attitude.w);
+		rotFix.x = Input.gyro.attitude.x;
+		rotFix.y = Input.gyro.attitude.y;
+		rotFix.z = -Input.gyro.attitude.z;
+		rotFix.w = -Input.gyro.attitude.w;
 		this.transform.localRotation = rotFix;
 	}
 
@@ -49,9 +55,9 @@ public class DeviceCam : MonoBehaviour {
 			if (Application.HasUserAuthorization (UserAuthorization.WebCam)) {
 				for (int i = 0; i < devices.Length; i++) {
 					if (!devices [i].isFrontFacing) {
-						backFacingCam = new WebCamTexture (devices [i].name, Screen.width, Screen.height);
+						backFacingCam = new WebCamTexture (devices [i].name, 1920, 1080);
 					} else {
-						frontFacingCam = new WebCamTexture (devices [i].name, Screen.width, Screen.height);
+						frontFacingCam = new WebCamTexture (devices [i].name, 1080, 720);
 					}
 				}
 				if (backFacingCam != null) {
@@ -60,74 +66,78 @@ public class DeviceCam : MonoBehaviour {
 				} else {
 					webcamTexture = frontFacingCam;
 					isFrontCamOn = true;
+					webCamLocalScale.z = -zScaler;
+					webCamPlane.transform.localScale = webCamLocalScale;
 				}
 				webCamRenderer.material.mainTexture = webcamTexture;
 				webcamTexture.Play ();
 			}
 		} else {
+			#if UNITY_EDITOR
 			Debug.Log ("No camera found");
+			#endif
 		}
 	}
 
-	private void RotateCamera(){
-		if (webcamTexture != null) {
-			z_rotate = -webcamTexture.videoRotationAngle;
-			if (z_rotate == -90) {
-				webCamRenderer.transform.localEulerAngles = new Vector3 (0, yRotPortraitCam, -z_rotate);
-				webCamRenderer.transform.localScale = new Vector3 (1f , 1f, screenRatio);
-			} else if (z_rotate == -270) {
-				webCamRenderer.transform.localEulerAngles = new Vector3 (0, -yRotPortraitCam, -z_rotate);
-				webCamRenderer.transform.localScale = new Vector3 (1f, 1f, screenRatio);
-			} else if (z_rotate == -180) {
-				webCamRenderer.transform.localEulerAngles = new Vector3 (90, yRotLandscapeCam, z_rotate);
-				webCamRenderer.transform.localScale = new Vector3 (1f/screenRatio, 1f, 1f);
-			} else {
-				webCamRenderer.transform.localEulerAngles = new Vector3 (-90, yRotLandscapeCam, z_rotate);
-				webCamRenderer.transform.localScale = new Vector3 (1f/screenRatio, 1f, 1f);
+	private void GetDeviceOrientation(){
+		if(webcamTexture != null){
+			dOrientation = Input.deviceOrientation;
+			appWidth = webcamTexture.width;
+			appHeight = webcamTexture.height;
+			if (dOrientation == DeviceOrientation.Portrait) {
+				z_rotate = -90;
+			} else if (dOrientation == DeviceOrientation.PortraitUpsideDown) {
+				z_rotate = 90;
+			} else if (dOrientation == DeviceOrientation.LandscapeRight) {
+				z_rotate = 180 - frontFacingCam_offset;
+			} else if (dOrientation == DeviceOrientation.LandscapeLeft){
+				z_rotate = 0 + frontFacingCam_offset;
 			}
 		}
 	}
 
-	private static Texture2D RotateImage(Texture2D originTexture, int angle){
-		Texture2D result;
-		result = new Texture2D(originTexture.width, originTexture.height);
-		Color32[] pix1 = result.GetPixels32();
-		Color32[] pix2 = originTexture.GetPixels32();
-		int W = originTexture.width;
-		int H = originTexture.height;
-		int x = 0;
-		int y = 0;
-		Color32[] pix3 = rotateSquare(pix2, (Mathf.PI/180*(float)angle), originTexture);
-		for (int j = 0; j < H; j++){
-			for (var i = 0; i < W; i++) {
-				pix1[result.width/2 - W/2 + x + i + result.width*(result.height/2-H/2+j+y)] = pix3[i + j*W];
-			}
+	private Texture2D RotatePictureImage(Color[] image){
+		GetDeviceOrientation ();
+		if (z_rotate == -90) {
+			image = RotateImageBy270 (appWidth, appHeight, image);
+			appWidth = webcamTexture.height;
+			appHeight = webcamTexture.width;
+		} else if (z_rotate == 90) {
+			image = RotateImageBy90 (appWidth, appHeight, image);
+			appWidth = webcamTexture.height;
+			appHeight = webcamTexture.width;
+		} else if (z_rotate == 180) {
+			RotateImageBy180 (appWidth, appHeight, image);
 		}
-		result.SetPixels32(pix1);
-		result.Apply();
-		return result;
+		Texture2D picTex = new Texture2D (appWidth, appHeight, TextureFormat.RGBA32, false);
+		picTex.SetPixels(image);
+		return picTex;
 	}
 
-	private static Color32[] rotateSquare(Color32[] arr, float phi, Texture2D originTexture){
-		int x, y, i, j;
-		float sn = Mathf.Sin(phi);
-		float cs = Mathf.Cos(phi);
-		Color32[] arr2 = originTexture.GetPixels32();
-		int W = originTexture.width;
-		int H = originTexture.height;
-		int xc = W/2;
-		int yc = H/2;
-		for (j=0; j<H; j++){
-			for (i=0; i<W; i++){
-				arr2[j*W+i] = new Color32(0,0,0,0);
-				x = (int)(cs*(i-xc)+sn*(j-yc)+xc);
-				y = (int)(-sn*(i-xc)+cs*(j-yc)+yc);
-				if ((x>-1) && (x<W) &&(y>-1) && (y<H)){ 
-					arr2[j*W+i]=arr[y*W+x];
-				}
-			}
+	private Color[] RotateImageBy90(int width, int height, Color[] arr){
+		Color[] newArr = new Color[width * height];
+		for (int i = 0; i < arr.Length; i++) {
+			newArr [(height * ((i % width) + 1)) - ((i / width) + 1)] = arr [i];
 		}
-		return arr2;
+		return newArr;
+	}
+
+	private void RotateImageBy180(int width, int height, Color[] arr){
+		int size = (width * height) - 1;
+		Color temp;
+		for (int i = 0; i < arr.Length/2; i++) {
+			temp = arr [i];
+			arr [i] = arr [size - i];
+			arr [size - i] = temp;
+		}
+	}
+
+	private Color[] RotateImageBy270(int width, int height, Color[] arr){
+		Color[] newArr = new Color[width * height];
+		for (int i = 0; i < arr.Length; i++) {
+			newArr [(height * (width - 1 - (i % width))) + (i / width)] = arr [i];
+		}
+		return newArr;
 	}
 		
 	public void TakePicture(){
@@ -135,9 +145,7 @@ public class DeviceCam : MonoBehaviour {
 			webcamTexture.Pause();
 			//take picture
 			Color[] picData = webcamTexture.GetPixels();
-			Texture2D picTex = new Texture2D(appWidth, appHeight, TextureFormat.RGBA32, false);
-			picTex.SetPixels(picData);
-			picTex = RotateImage (picTex, z_rotate);
+			Texture2D picTex = RotatePictureImage (picData);
 			//save picture to file
 			byte[] picJPG = picTex.EncodeToJPG();
 			#if UNITY_EDITOR
@@ -155,12 +163,14 @@ public class DeviceCam : MonoBehaviour {
 			webcamTexture.Stop ();
 			if (isFrontCamOn) {
 				webcamTexture = backFacingCam;
-				yRotLandscapeCam = 180;
-				yRotPortraitCam = 90;
+				frontFacingCam_offset = 0;
+				webCamLocalScale.z = zScaler;
+				webCamPlane.transform.localScale = webCamLocalScale;
 			} else {
 				webcamTexture = frontFacingCam;
-				yRotLandscapeCam = 0;
-				yRotPortraitCam = -90;
+				frontFacingCam_offset = 180;
+				webCamLocalScale.z = -zScaler;
+				webCamPlane.transform.localScale = webCamLocalScale;
 			}
 			webCamRenderer.material.mainTexture = webcamTexture;
 			webcamTexture.Play ();

@@ -13,6 +13,8 @@ public class VisionAPICaller : VisionRestAPI{
 	private Dictionary<string, string> headers;
 	[SerializeField]
 	private GameObject prefab3Dtext;
+	[SerializeField]
+	private GameObject textSpawnLocation;
 	private Camera mainCamera;
 	private float yOffset = 0f;
 	private UnityEngine.Color textColor = UnityEngine.Color.red;
@@ -23,26 +25,27 @@ public class VisionAPICaller : VisionRestAPI{
 		headers = new Dictionary<string, string>();
 		headers.Add("Content-Type", "application/json; charset=UTF-8");
 
+		#if UNITY_EDITOR
 		if (apiKey == null || apiKey == "") {
 			Debug.LogError ("No API key. Please set your API key into the \"Web Cam Texture To Cloud Vision(Script)\" component.");
 		}
+		#endif
 
 	}
 
 	public void DefineImageContents(byte[] jpg){
-		if (this.apiKey == null) {
-			return;
+		if (this.apiKey != null) {
+			string base64 = System.Convert.ToBase64String (jpg); //converts image(byte[]) to a base64 string
+
+			AnnotateImageRequests apiRequests = new AnnotateImageRequests ();
+			apiRequests.requests = new List<AnnotateImageRequest> ();
+
+			apiRequests.requests.Add (CreateImageRequest (base64, this.featureType)); //first Request
+			apiRequests.requests.Add (CreateImageRequest (base64, FeatureType.IMAGE_PROPERTIES)); //second Request
+
+			string jsonData = JsonUtility.ToJson (apiRequests, false);
+			StartCoroutine (SendPostRequestToVisionAPI (jsonData));
 		}
-		string base64 = System.Convert.ToBase64String(jpg); //converts image(byte[]) to a base64 string
-
-		AnnotateImageRequests apiRequests = new AnnotateImageRequests();
-		apiRequests.requests = new List<AnnotateImageRequest>();
-
-		apiRequests.requests.Add(CreateImageRequest (base64, this.featureType)); //first Request
-		apiRequests.requests.Add(CreateImageRequest (base64, FeatureType.IMAGE_PROPERTIES)); //second Request
-
-		string jsonData = JsonUtility.ToJson(apiRequests, false);
-		StartCoroutine(SendPostRequestToVisionAPI(jsonData));
 	}
 
 	private AnnotateImageRequest CreateImageRequest(string base64, FeatureType featureType){
@@ -72,7 +75,9 @@ public class VisionAPICaller : VisionRestAPI{
 					CalculateTextColor(apiResponses);
 					DisplayResults (apiResponses);
 				} else { //there was an error
+					#if UNITY_EDITOR
 					Debug.Log ("Error: " + www.error);
+					#endif
 				}
 			}
 		}
@@ -101,9 +106,11 @@ public class VisionAPICaller : VisionRestAPI{
 	}
 
 	private void PrintToScreen(string str){
-		Vector3 textLocation = mainCamera.ScreenToWorldPoint (new Vector3(Screen.width/2, (Screen.height * 0.9f), mainCamera.nearClipPlane+5f));
+		//Vector3 textLocation = mainCamera.ScreenToWorldPoint (new Vector3 (Screen.width / 2, Screen.height * 0.9f, mainCamera.nearClipPlane + 5f));
+		Vector3 textLocation = textSpawnLocation.transform.position;
+		Quaternion textRotation = new Quaternion (transform.rotation.x, transform.rotation.y, 0f, transform.rotation.w);
 		textLocation.y += yOffset;
-		GameObject text = Instantiate(prefab3Dtext, textLocation, transform.rotation);
+		GameObject text = Instantiate(prefab3Dtext, textLocation, textRotation);
 		text.GetComponent<TextMesh>().text = str;
 		text.GetComponent<TextMesh> ().color = textColor;
 		yOffset -= 1f;
@@ -128,19 +135,14 @@ public class VisionAPICaller : VisionRestAPI{
 			yOffset = 0f;
 			for (int i = 0; i < apiResponses.responses [0].faceAnnotations.Count; i++) {
 				string faceAnnotation = "Joy: " + apiResponses.responses [0].faceAnnotations [i].joyLikelihood; //happiness
-				Debug.Log (faceAnnotation);
 				PrintToScreen (faceAnnotation);
 				faceAnnotation = "Sorrow: " + apiResponses.responses [0].faceAnnotations [i].sorrowLikelihood; //sadness
-				Debug.Log (faceAnnotation);
 				PrintToScreen (faceAnnotation);
 				faceAnnotation = "Anger: " + apiResponses.responses [0].faceAnnotations [i].angerLikelihood; //anger
-				Debug.Log (faceAnnotation);
 				PrintToScreen (faceAnnotation);
 				faceAnnotation = "Surprise: " + apiResponses.responses [0].faceAnnotations [i].surpriseLikelihood; //surprise
-				Debug.Log (faceAnnotation);
 				PrintToScreen (faceAnnotation);
 				faceAnnotation = "Headwear: " + apiResponses.responses [0].faceAnnotations [i].headwearLikelihood; //headwear liklihood
-				Debug.Log (faceAnnotation);
 				PrintToScreen (faceAnnotation);
 			}
 		}
@@ -152,7 +154,6 @@ public class VisionAPICaller : VisionRestAPI{
 			yOffset = 0f;
 			for (int i = 0; i < apiResponses.responses [0].labelAnnotations.Count; i++) {
 				string entityDescription = apiResponses.responses [0].labelAnnotations [i].description;
-				Debug.Log (entityDescription);
 				PrintToScreen (entityDescription);
 			}
 		}
@@ -164,7 +165,6 @@ public class VisionAPICaller : VisionRestAPI{
 			yOffset = 0f;
 			for (int i = 0; i < apiResponses.responses [0].landmarkAnnotations.Count; i++) {
 				string entityDescription = apiResponses.responses [0].landmarkAnnotations [i].description;
-				Debug.Log (entityDescription);
 				PrintToScreen (entityDescription);
 			}
 		}
@@ -176,7 +176,6 @@ public class VisionAPICaller : VisionRestAPI{
 			yOffset = 0f;
 			for (int i = 0; i < apiResponses.responses [0].logoAnnotations.Count; i++) {
 				string entityDescription = apiResponses.responses [0].logoAnnotations [i].description;
-				Debug.Log (entityDescription);
 				PrintToScreen (entityDescription);
 			}
 		}
@@ -187,7 +186,6 @@ public class VisionAPICaller : VisionRestAPI{
 		if (this.featureType == FeatureType.TEXT_DETECTION) {
 			yOffset = 0f;
 			string entityDescription = apiResponses.responses [0].textAnnotations [0].description;
-			Debug.Log (entityDescription);
 			PrintToScreen (entityDescription);
 		}
 	}
@@ -197,7 +195,6 @@ public class VisionAPICaller : VisionRestAPI{
 		if (this.featureType == FeatureType.DOCUMENT_TEXT_DETECTION) {
 			yOffset = 0f;
 			string textAnnotation = apiResponses.responses [0].fullTextAnnotation.text;
-			Debug.Log (textAnnotation);
 			PrintToScreen (textAnnotation);
 		}
 	}
@@ -207,16 +204,12 @@ public class VisionAPICaller : VisionRestAPI{
 		if (this.featureType == FeatureType.SAFE_SEARCH_DETECTION) {
 			yOffset = 0f;
 			string safeSearchAnnotation = "Adult Image: " + apiResponses.responses [0].safeSearchAnnotation.adult; //adult image
-			Debug.Log(safeSearchAnnotation);
 			PrintToScreen (safeSearchAnnotation);
-			safeSearchAnnotation = "Meme Image: " + apiResponses.responses [0].safeSearchAnnotation.spoof; //(meme image) Spoof likelihood. The likelihood that an modification was made to the image's canonical version to make it appear funny or offensive. 
-			Debug.Log(safeSearchAnnotation);
+			safeSearchAnnotation = "Meme Image: " + apiResponses.responses [0].safeSearchAnnotation.spoof; //(meme image) Spoof likelihood. The likelihood that an modification was made to the image's canonical version to make it appear funny or offensive.
 			PrintToScreen (safeSearchAnnotation);
 			safeSearchAnnotation = "Medical Image: " + apiResponses.responses [0].safeSearchAnnotation.medical; //medical image
-			Debug.Log(safeSearchAnnotation);
 			PrintToScreen (safeSearchAnnotation);
 			safeSearchAnnotation = "Violent Image: " + apiResponses.responses [0].safeSearchAnnotation.violence; //violent image
-			Debug.Log(safeSearchAnnotation);
 			PrintToScreen (safeSearchAnnotation);
 		}
 	}
@@ -226,10 +219,9 @@ public class VisionAPICaller : VisionRestAPI{
 		if (this.featureType == FeatureType.IMAGE_PROPERTIES) {
 			yOffset = 0f;
 			for (int i = 0; i < apiResponses.responses [0].imagePropertiesAnnotation.dominantColors.colors.Count; i++) {
-				string imageColor = "RGBA(" + apiResponses.responses [0].imagePropertiesAnnotation.dominantColors.colors[i].color.red 
+				string imageColor = "RGB(" + apiResponses.responses [0].imagePropertiesAnnotation.dominantColors.colors[i].color.red 
 					+ ", "  + apiResponses.responses [0].imagePropertiesAnnotation.dominantColors.colors[i].color.green + "," 
 					+ apiResponses.responses [0].imagePropertiesAnnotation.dominantColors.colors[i].color.blue + ")";
-				Debug.Log (imageColor);
 				PrintToScreen (imageColor);
 			}
 		}
@@ -243,7 +235,6 @@ public class VisionAPICaller : VisionRestAPI{
 				for (int j = 0; j < apiResponses.responses [0].cropHintsAnnotation.cropHints [i].boundingPoly.vertices.Count; j++) {
 					string cropVertex = "{" + apiResponses.responses [0].cropHintsAnnotation.cropHints [i].boundingPoly.vertices[j].x + ", "
 						+ apiResponses.responses [0].cropHintsAnnotation.cropHints [i].boundingPoly.vertices[j].y + "}";
-					Debug.Log (cropVertex);
 					PrintToScreen (cropVertex);
 				}
 			}

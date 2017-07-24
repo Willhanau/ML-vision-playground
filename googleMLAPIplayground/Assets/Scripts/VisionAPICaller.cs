@@ -8,31 +8,38 @@ public class VisionAPICaller : VisionRestAPI{
 	private string url = "https://vision.googleapis.com/v1/images:annotate?key=";
 	[SerializeField]
 	private string apiKey = "";
+	/// <summary>
+	/// The max results.
+	/// </summary>
 	public int maxResults = 5;
 	private FeatureType featureType = FeatureType.LABEL_DETECTION;
 	private Dictionary<string, string> headers;
 	[SerializeField]
-	private GameObject prefab3Dtext;
+	private GameObject output3dTextPrefab;
 	[SerializeField]
-	private GameObject textSpawnLocation;
-	private Camera mainCamera;
-	private float yOffset = 0f;
+	private GameObject output3dTextLocation;
+	private string screenBuffer;
+	private DeviceOrientation dOrientation;
+	private int z_rotate = 0;
 	private UnityEngine.Color textColor = UnityEngine.Color.red;
 
 	//Use this for initialization
 	void Start () {
-		mainCamera = this.GetComponent<Camera> ();
 		headers = new Dictionary<string, string>();
 		headers.Add("Content-Type", "application/json; charset=UTF-8");
 
 		#if UNITY_EDITOR
 		if (apiKey == null || apiKey == "") {
-			Debug.LogError ("No API key. Please set your API key into the \"Web Cam Texture To Cloud Vision(Script)\" component.");
+			Debug.LogError ("No API key. Please set your API key into the \"WebCamHolder->MainCamera->VisionAPICaller(Script)\" component.");
 		}
 		#endif
 
 	}
 
+	/// <summary>
+	/// Defines the image contents.
+	/// </summary>
+	/// <param name="jpg">Jpg.</param>
 	public void DefineImageContents(byte[] jpg){
 		if (this.apiKey != null) {
 			string base64 = System.Convert.ToBase64String (jpg); //converts image(byte[]) to a base64 string
@@ -105,15 +112,32 @@ public class VisionAPICaller : VisionRestAPI{
 
 	}
 
-	private void PrintToScreen(string str){
-		//Vector3 textLocation = mainCamera.ScreenToWorldPoint (new Vector3 (Screen.width / 2, Screen.height * 0.9f, mainCamera.nearClipPlane + 5f));
-		Vector3 textLocation = textSpawnLocation.transform.position;
-		Quaternion textRotation = new Quaternion (transform.rotation.x, transform.rotation.y, 0f, transform.rotation.w);
-		textLocation.y += yOffset;
-		GameObject text = Instantiate(prefab3Dtext, textLocation, textRotation);
-		text.GetComponent<TextMesh>().text = str;
+	private void StoreToScreenBuffer(string str){
+		screenBuffer += str + "\n\n";
+	}
+
+	private void DisplayScreenBuffer(){
+		GetDeviceOrientation ();
+		Quaternion textRotation = new Quaternion (transform.rotation.x, transform.rotation.y, transform.rotation.z, transform.rotation.w);
+		textRotation *= Quaternion.Euler (0, 0, z_rotate);
+
+		GameObject text = Instantiate(output3dTextPrefab, output3dTextLocation.transform.position, textRotation);
+		text.GetComponent<TextMesh>().text = screenBuffer;
 		text.GetComponent<TextMesh> ().color = textColor;
-		yOffset -= 1f;
+		screenBuffer = "";
+	}
+
+	private void GetDeviceOrientation(){
+		dOrientation = Input.deviceOrientation;
+		if (dOrientation == DeviceOrientation.Portrait) {
+			z_rotate = 0;
+		} else if (dOrientation == DeviceOrientation.PortraitUpsideDown) {
+			z_rotate = 180;
+		} else if (dOrientation == DeviceOrientation.LandscapeRight) {
+			z_rotate = 90;
+		} else if (dOrientation == DeviceOrientation.LandscapeLeft){
+			z_rotate = -90;
+		}
 	}
 
 	private void DisplayResults(AnnotateImageResponses apiResponses){
@@ -132,18 +156,17 @@ public class VisionAPICaller : VisionRestAPI{
 	//Face detection response only
 	private void ListFaceDetectionMoodLikeliHood(AnnotateImageResponses apiResponses) {
 		if (this.featureType == FeatureType.FACE_DETECTION) {
-			yOffset = 0f;
 			for (int i = 0; i < apiResponses.responses [0].faceAnnotations.Count; i++) {
 				string faceAnnotation = "Joy: " + apiResponses.responses [0].faceAnnotations [i].joyLikelihood; //happiness
-				PrintToScreen (faceAnnotation);
+				StoreToScreenBuffer (faceAnnotation);
 				faceAnnotation = "Sorrow: " + apiResponses.responses [0].faceAnnotations [i].sorrowLikelihood; //sadness
-				PrintToScreen (faceAnnotation);
+				StoreToScreenBuffer (faceAnnotation);
 				faceAnnotation = "Anger: " + apiResponses.responses [0].faceAnnotations [i].angerLikelihood; //anger
-				PrintToScreen (faceAnnotation);
+				StoreToScreenBuffer (faceAnnotation);
 				faceAnnotation = "Surprise: " + apiResponses.responses [0].faceAnnotations [i].surpriseLikelihood; //surprise
-				PrintToScreen (faceAnnotation);
+				StoreToScreenBuffer (faceAnnotation);
 				faceAnnotation = "Headwear: " + apiResponses.responses [0].faceAnnotations [i].headwearLikelihood; //headwear liklihood
-				PrintToScreen (faceAnnotation);
+				StoreToScreenBuffer (faceAnnotation);
 			}
 		}
 	}
@@ -151,21 +174,20 @@ public class VisionAPICaller : VisionRestAPI{
 	//Label detection response only
 	private void ListLabelDetectionDescriptions(AnnotateImageResponses apiResponses){
 		if (this.featureType == FeatureType.LABEL_DETECTION) {
-			yOffset = 0f;
 			for (int i = 0; i < apiResponses.responses [0].labelAnnotations.Count; i++) {
 				string entityDescription = apiResponses.responses [0].labelAnnotations [i].description;
-				PrintToScreen (entityDescription);
+				StoreToScreenBuffer (entityDescription);
 			}
+			DisplayScreenBuffer();
 		}
 	}
 
 	//Landmark detection response only
 	private void ListLandMarkDetectionDescriptions(AnnotateImageResponses apiResponses){
 		if (this.featureType == FeatureType.LANDMARK_DETECTION) {
-			yOffset = 0f;
 			for (int i = 0; i < apiResponses.responses [0].landmarkAnnotations.Count; i++) {
 				string entityDescription = apiResponses.responses [0].landmarkAnnotations [i].description;
-				PrintToScreen (entityDescription);
+				StoreToScreenBuffer (entityDescription);
 			}
 		}
 	}
@@ -173,10 +195,9 @@ public class VisionAPICaller : VisionRestAPI{
 	//Logo detection response only
 	private void ListLogoDetectionDescriptions(AnnotateImageResponses apiResponses){
 		if (this.featureType == FeatureType.LOGO_DETECTION) {
-			yOffset = 0f;
 			for (int i = 0; i < apiResponses.responses [0].logoAnnotations.Count; i++) {
 				string entityDescription = apiResponses.responses [0].logoAnnotations [i].description;
-				PrintToScreen (entityDescription);
+				StoreToScreenBuffer (entityDescription);
 			}
 		}
 	}
@@ -184,45 +205,41 @@ public class VisionAPICaller : VisionRestAPI{
 	//Text detection response only
 	private void ListTextDetectionDescription(AnnotateImageResponses apiResponses){
 		if (this.featureType == FeatureType.TEXT_DETECTION) {
-			yOffset = 0f;
 			string entityDescription = apiResponses.responses [0].textAnnotations [0].description;
-			PrintToScreen (entityDescription);
+			StoreToScreenBuffer (entityDescription);
 		}
 	}
 
 	//Fulltext detection response only
 	private void ListFullTextDetectionDescription(AnnotateImageResponses apiResponses){
 		if (this.featureType == FeatureType.DOCUMENT_TEXT_DETECTION) {
-			yOffset = 0f;
 			string textAnnotation = apiResponses.responses [0].fullTextAnnotation.text;
-			PrintToScreen (textAnnotation);
+			StoreToScreenBuffer (textAnnotation);
 		}
 	}
 
 	//Safe search detection response only
 	private void ListSafeSearchImageDetection(AnnotateImageResponses apiResponses) {
 		if (this.featureType == FeatureType.SAFE_SEARCH_DETECTION) {
-			yOffset = 0f;
 			string safeSearchAnnotation = "Adult Image: " + apiResponses.responses [0].safeSearchAnnotation.adult; //adult image
-			PrintToScreen (safeSearchAnnotation);
+			StoreToScreenBuffer (safeSearchAnnotation);
 			safeSearchAnnotation = "Meme Image: " + apiResponses.responses [0].safeSearchAnnotation.spoof; //(meme image) Spoof likelihood. The likelihood that an modification was made to the image's canonical version to make it appear funny or offensive.
-			PrintToScreen (safeSearchAnnotation);
+			StoreToScreenBuffer (safeSearchAnnotation);
 			safeSearchAnnotation = "Medical Image: " + apiResponses.responses [0].safeSearchAnnotation.medical; //medical image
-			PrintToScreen (safeSearchAnnotation);
+			StoreToScreenBuffer (safeSearchAnnotation);
 			safeSearchAnnotation = "Violent Image: " + apiResponses.responses [0].safeSearchAnnotation.violence; //violent image
-			PrintToScreen (safeSearchAnnotation);
+			StoreToScreenBuffer (safeSearchAnnotation);
 		}
 	}
 
 	//Image properties detection response only
 	private void ListImageColorsDetection(AnnotateImageResponses apiResponses){
 		if (this.featureType == FeatureType.IMAGE_PROPERTIES) {
-			yOffset = 0f;
 			for (int i = 0; i < apiResponses.responses [0].imagePropertiesAnnotation.dominantColors.colors.Count; i++) {
 				string imageColor = "RGB(" + apiResponses.responses [0].imagePropertiesAnnotation.dominantColors.colors[i].color.red 
 					+ ", "  + apiResponses.responses [0].imagePropertiesAnnotation.dominantColors.colors[i].color.green + "," 
 					+ apiResponses.responses [0].imagePropertiesAnnotation.dominantColors.colors[i].color.blue + ")";
-				PrintToScreen (imageColor);
+				StoreToScreenBuffer (imageColor);
 			}
 		}
 	}
@@ -230,12 +247,11 @@ public class VisionAPICaller : VisionRestAPI{
 	//Crop Hints detection response only
 	private void ListCropHints(AnnotateImageResponses apiResponses){
 		if (this.featureType == FeatureType.CROP_HINTS) {
-			yOffset = 0f;
 			for (int i = 0; i < apiResponses.responses [0].cropHintsAnnotation.cropHints.Count; i++) {
 				for (int j = 0; j < apiResponses.responses [0].cropHintsAnnotation.cropHints [i].boundingPoly.vertices.Count; j++) {
 					string cropVertex = "{" + apiResponses.responses [0].cropHintsAnnotation.cropHints [i].boundingPoly.vertices[j].x + ", "
 						+ apiResponses.responses [0].cropHintsAnnotation.cropHints [i].boundingPoly.vertices[j].y + "}";
-					PrintToScreen (cropVertex);
+					StoreToScreenBuffer (cropVertex);
 				}
 			}
 		}
@@ -244,27 +260,30 @@ public class VisionAPICaller : VisionRestAPI{
 	//Web detection response only
 	private void ListWebDetection(AnnotateImageResponses apiResponses){
 		if (this.featureType == FeatureType.WEB_DETECTION) {
-			yOffset = 0f;
 			string webImageURL = "";
 			for (int i = 0; i < apiResponses.responses [0].webDetection.fullMatchingImages.Count; i++) {
 				webImageURL = "Full Matching Image URL: " + apiResponses.responses [0].webDetection.fullMatchingImages[i].url;
-				PrintToScreen (webImageURL);
+				StoreToScreenBuffer (webImageURL);
 			}
 			for (int i = 0; i < apiResponses.responses [0].webDetection.partialMatchingImages.Count; i++) {
 				webImageURL = "Partial Matching Image URL: " + apiResponses.responses [0].webDetection.partialMatchingImages[i].url;
-				PrintToScreen (webImageURL);
+				StoreToScreenBuffer (webImageURL);
 			}
 			for (int i = 0; i < apiResponses.responses [0].webDetection.pagesWithMatchingImages.Count; i++) {
 				webImageURL = "Web Pages With Matching Image URL: " + apiResponses.responses [0].webDetection.pagesWithMatchingImages[i].url;
-				PrintToScreen (webImageURL);
+				StoreToScreenBuffer (webImageURL);
 			}
 			for (int i = 0; i < apiResponses.responses [0].webDetection.visuallySimilarImages.Count; i++) {
 				webImageURL = "Visually Similar Image URL: " + apiResponses.responses [0].webDetection.visuallySimilarImages[i].url;
-				PrintToScreen (webImageURL);
+				StoreToScreenBuffer (webImageURL);
 			}
 		}
 	}
 
+	/// <summary>
+	/// Drop down list.
+	/// </summary>
+	/// <param name="value">Value.</param>
 	public void DropDownList(int value){
 		switch (value) {
 		case 0:

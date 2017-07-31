@@ -14,6 +14,8 @@ public class DeviceCam : MonoBehaviour {
 	private Quaternion rotFix;
 	private int appWidth;
 	private int appHeight;
+	private TrackDeviceOrientation track_dOrientation;
+	private DeviceOrientation dOrientation;
 	private int z_rotate = -90;
 	private int frontFacingCam_offset = 0;
 	#if UNITY_EDITOR
@@ -22,13 +24,13 @@ public class DeviceCam : MonoBehaviour {
 	private float zScaler = -1f;
 	#endif
 	private Vector3 webCamLocalScale;
-	private DeviceOrientation dOrientation;
 	public GameObject webCamPlane;
 
 	// Use this for initialization
 	void Start () {
 		visionAPI = this.GetComponent<VisionAPICaller> ();
 		webCamRenderer = webCamPlane.GetComponent<Renderer> ();
+		track_dOrientation = this.GetComponent<TrackDeviceOrientation> ();
 		float ratio = (float)Screen.width / Screen.height;
 		this.transform.localScale = new Vector3 (1f, 1f/ratio, 1f);
 		webCamRenderer.transform.localEulerAngles = new Vector3 (-180, 90, -90);
@@ -79,25 +81,23 @@ public class DeviceCam : MonoBehaviour {
 		}
 	}
 
-	private void GetDeviceOrientation(){
-		if(webcamTexture != null){
-			dOrientation = Input.deviceOrientation;
-			appWidth = webcamTexture.width;
-			appHeight = webcamTexture.height;
-			if (dOrientation == DeviceOrientation.Portrait) {
-				z_rotate = -90;
-			} else if (dOrientation == DeviceOrientation.PortraitUpsideDown) {
-				z_rotate = 90;
-			} else if (dOrientation == DeviceOrientation.LandscapeRight) {
-				z_rotate = 180 - frontFacingCam_offset;
-			} else if (dOrientation == DeviceOrientation.LandscapeLeft){
-				z_rotate = 0 + frontFacingCam_offset;
-			}
+	private void Get_z_rotate(){
+		dOrientation = track_dOrientation.GetDeviceOrientation();
+		if (dOrientation == DeviceOrientation.Portrait) {
+			z_rotate = -90;
+		} else if (dOrientation == DeviceOrientation.PortraitUpsideDown) {
+			z_rotate = 90;
+		} else if (dOrientation == DeviceOrientation.LandscapeRight) {
+			z_rotate = 180 - frontFacingCam_offset;
+		} else if (dOrientation == DeviceOrientation.LandscapeLeft){
+			z_rotate = 0 + frontFacingCam_offset;
 		}
 	}
 
 	private Texture2D RotatePictureImage(Color[] image){
-		GetDeviceOrientation ();
+		Get_z_rotate();
+		appWidth = webcamTexture.width;
+		appHeight = webcamTexture.height;
 		if (z_rotate == -90) {
 			image = RotateImageBy270 (appWidth, appHeight, image);
 			appWidth = webcamTexture.height;
@@ -110,7 +110,7 @@ public class DeviceCam : MonoBehaviour {
 			RotateImageBy180 (appWidth, appHeight, image);
 		}
 		Texture2D picTex = new Texture2D (appWidth, appHeight, TextureFormat.RGBA32, false);
-		picTex.SetPixels(image);
+		picTex.SetPixels (image);
 		return picTex;
 	}
 

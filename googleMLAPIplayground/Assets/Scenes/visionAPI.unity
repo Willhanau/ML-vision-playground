@@ -1127,6 +1127,7 @@ GameObject:
   - component: {fileID: 1206065646}
   - component: {fileID: 1206065652}
   - component: {fileID: 1206065651}
+  - component: {fileID: 1206065653}
   m_Layer: 0
   m_Name: Main Camera
   m_TagString: MainCamera
@@ -1232,6 +1233,17 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   webCamPlane: {fileID: 59711032}
+--- !u!114 &1206065653
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 0}
+  m_GameObject: {fileID: 1206065645}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fa0b9fa4829a54a7d840005c1ec8ee20, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!1 &1556035695
 GameObject:
   m_ObjectHideFlags: 0

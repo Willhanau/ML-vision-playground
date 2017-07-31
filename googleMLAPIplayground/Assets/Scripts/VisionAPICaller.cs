@@ -19,12 +19,14 @@ public class VisionAPICaller : VisionRestAPI{
 	[SerializeField]
 	private GameObject output3dTextLocation;
 	private string screenBuffer;
+	private TrackDeviceOrientation track_dOrientation;
 	private DeviceOrientation dOrientation;
 	private int z_rotate = 0;
 	private UnityEngine.Color textColor = UnityEngine.Color.red;
 
 	//Use this for initialization
 	void Start () {
+		track_dOrientation = this.GetComponent<TrackDeviceOrientation> ();
 		headers = new Dictionary<string, string>();
 		headers.Add("Content-Type", "application/json; charset=UTF-8");
 
@@ -123,7 +125,7 @@ public class VisionAPICaller : VisionRestAPI{
 
 	private void DisplayScreenBuffer(){
 		if (screenBuffer != "") {
-			GetDeviceOrientation ();
+			Get_z_rotate();
 			Quaternion textRotation = new Quaternion (transform.rotation.x, transform.rotation.y, transform.rotation.z, transform.rotation.w);
 			textRotation *= Quaternion.Euler (0, 0, z_rotate);
 
@@ -134,8 +136,8 @@ public class VisionAPICaller : VisionRestAPI{
 		}
 	}
 
-	private void GetDeviceOrientation(){
-		dOrientation = Input.deviceOrientation;
+	private void Get_z_rotate(){
+		dOrientation = track_dOrientation.GetDeviceOrientation();
 		if (dOrientation == DeviceOrientation.Portrait) {
 			z_rotate = 0;
 		} else if (dOrientation == DeviceOrientation.PortraitUpsideDown) {

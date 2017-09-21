@@ -11,6 +11,8 @@ public class DeviceCam : MonoBehaviour {
 	private bool isCamPaused = false;
 	private Renderer webCamRenderer;
 	private WebCamTexture webcamTexture;
+	[SerializeField]
+	private GameObject switchCameraButton;
 	private Quaternion rotFix;
 	private int appWidth;
 	private int appHeight;
@@ -53,7 +55,9 @@ public class DeviceCam : MonoBehaviour {
 	private void SetUpCamera(){
 		devices = WebCamTexture.devices;
 		if (devices.Length != 0) {
-			Application.RequestUserAuthorization (UserAuthorization.WebCam);
+			if (devices.Length == 1) {
+				switchCameraButton.SetActive (false);
+			}
 			if (Application.HasUserAuthorization (UserAuthorization.WebCam)) {
 				for (int i = 0; i < devices.Length; i++) {
 					if (!devices [i].isFrontFacing) {
@@ -142,7 +146,8 @@ public class DeviceCam : MonoBehaviour {
 		
 	public void TakePicture(){
 		if (webcamTexture != null) {
-			webcamTexture.Pause();
+			//Pause Cam to take picture
+			PauseAndUnPause ();
 			//take picture
 			Color[] picData = webcamTexture.GetPixels();
 			Texture2D picTex = RotatePictureImage (picData);
@@ -154,7 +159,8 @@ public class DeviceCam : MonoBehaviour {
 			//destroy texture, then resume
 			Object.Destroy (picTex);
 			visionAPI.DefineImageContents (picJPG);
-			webcamTexture.Play ();
+			//Unpause cam after processing image
+			PauseAndUnPause();
 		}
 	}
 

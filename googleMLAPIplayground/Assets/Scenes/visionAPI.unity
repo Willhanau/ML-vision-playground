@@ -1171,6 +1171,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5c18c411da327214e904699914557468, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  switchCameraButton: {fileID: 531096808}
   webCamPlane: {fileID: 59711032}
 --- !u!114 &1206065653
 MonoBehaviour:

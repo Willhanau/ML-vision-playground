@@ -1,4 +1,5 @@
 ﻿using UnityEngine;
+using System.Collections;
 using System.IO;
 using UnityEngine.UI;
 public class DeviceCam : MonoBehaviour {
@@ -40,7 +41,7 @@ public class DeviceCam : MonoBehaviour {
 		webCamPlane.transform.localScale = webCamLocalScale;
 		Input.gyro.enabled = true;
 		rotFix = new Quaternion (Input.gyro.attitude.x, Input.gyro.attitude.y, -Input.gyro.attitude.z, -Input.gyro.attitude.w);
-		SetUpCamera ();
+		StartCoroutine (SetUpCamera ());
 	}
 
 	// Update is called once per frame
@@ -52,12 +53,13 @@ public class DeviceCam : MonoBehaviour {
 		this.transform.localRotation = rotFix;
 	}
 
-	private void SetUpCamera(){
+	private IEnumerator SetUpCamera(){
 		devices = WebCamTexture.devices;
 		if (devices.Length != 0) {
 			if (devices.Length == 1) {
 				switchCameraButton.SetActive (false);
 			}
+			yield return Application.RequestUserAuthorization (UserAuthorization.WebCam);
 			if (Application.HasUserAuthorization (UserAuthorization.WebCam)) {
 				for (int i = 0; i < devices.Length; i++) {
 					if (!devices [i].isFrontFacing) {

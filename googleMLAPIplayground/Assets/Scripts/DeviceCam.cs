@@ -63,9 +63,9 @@ public class DeviceCam : MonoBehaviour {
 			if (Application.HasUserAuthorization (UserAuthorization.WebCam)) {
 				for (int i = 0; i < devices.Length; i++) {
 					if (!devices [i].isFrontFacing) {
-						backFacingCam = new WebCamTexture (devices [i].name, 1920, 1080);
+						backFacingCam = new WebCamTexture (devices [i].name, 3840, 2160);
 					} else {
-						frontFacingCam = new WebCamTexture (devices [i].name, 1080, 720);
+						frontFacingCam = new WebCamTexture (devices [i].name, 1920, 1080);
 					}
 				}
 				if (backFacingCam != null) {

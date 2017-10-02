@@ -152,8 +152,9 @@ public class DeviceCam : MonoBehaviour {
 			PauseAndUnPause ();
 			//take picture
 			Color[] picData = webcamTexture.GetPixels();
+			//convert Color[](picData) to Texture2D
 			Texture2D picTex = RotatePictureImage (picData);
-			//save picture to file
+			//convert Texture2D(picTex) to JPG file format
 			byte[] picJPG = picTex.EncodeToJPG();
 			#if UNITY_EDITOR
 			File.WriteAllBytes(Application.dataPath + "/appPicture.jpg", picJPG);

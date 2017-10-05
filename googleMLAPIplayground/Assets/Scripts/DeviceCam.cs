@@ -2,6 +2,7 @@
 using System.Collections;
 using System.IO;
 using UnityEngine.UI;
+using System.Runtime.InteropServices;
 public class DeviceCam : MonoBehaviour {
 
 	private VisionAPICaller visionAPI;
@@ -21,16 +22,32 @@ public class DeviceCam : MonoBehaviour {
 	private DeviceOrientation dOrientation;
 	private int z_rotate = -90;
 	private int frontFacingCam_offset = 0;
-	#if UNITY_EDITOR
-	private float zScaler = 1f;
-	#else
-	private float zScaler = -1f;
-	#endif
+	private float zScaler;
+	private string savedImagePath;
 	private Vector3 webCamLocalScale;
 	public GameObject webCamPlane;
 
+
+	#if UNITY_IOS
+	[DllImport("__Internal")]
+	private static extern void _savePhotoToPhone(string imagePath);
+
+
+	private void savePhotoToPhone(string imagePath){
+		_savePhotoToPhone(imagePath);
+	}
+	#endif
+
+
 	// Use this for initialization
 	void Start () {
+		#if UNITY_EDITOR
+		zScaler = 1f;
+		savedImagePath = Application.dataPath + "/appPicture.jpg";
+		#else
+		zScaler = -1f;
+		savedImagePath = Application.persistentDataPath + "/appPicture.jpg";
+		#endif
 		visionAPI = this.GetComponent<VisionAPICaller> ();
 		webCamRenderer = webCamPlane.GetComponent<Renderer> ();
 		track_dOrientation = this.GetComponent<TrackDeviceOrientation> ();
@@ -157,7 +174,10 @@ public class DeviceCam : MonoBehaviour {
 			//convert Texture2D(picTex) to JPG file format
 			byte[] picJPG = picTex.EncodeToJPG();
 			#if UNITY_EDITOR
-			File.WriteAllBytes(Application.dataPath + "/appPicture.jpg", picJPG);
+			File.WriteAllBytes(savedImagePath, picJPG);
+			#else
+			File.WriteAllBytes(savedImagePath, picJPG);
+			savePhotoToPhone(savedImagePath);
 			#endif
 			//destroy texture, then resume
 			Object.Destroy (picTex);

@@ -42,17 +42,17 @@ public class VisionAPICaller : VisionRestAPI{
 	/// Defines the image contents.
 	/// </summary>
 	/// <param name="jpg">Jpg.</param>
-	public void DefineImageContents(byte[] jpg){
+	public void DefineImageContents(byte[] image){
 		if (this.apiKey != null) {
-			string base64 = System.Convert.ToBase64String (jpg); //converts image(byte[]) to a base64 string
+			string image_base64_str = System.Convert.ToBase64String (image); //converts image(byte[]) to a base64 string
 
 			AnnotateImageRequests apiRequests = new AnnotateImageRequests ();
 			apiRequests.requests = new List<AnnotateImageRequest> ();
 
-			apiRequests.requests.Add (CreateImageRequest (base64, this.featureType)); //first Request
+			apiRequests.requests.Add (CreateImageRequest (image_base64_str, this.featureType)); //first Request
 
 			if (this.featureType != FeatureType.IMAGE_PROPERTIES) {
-				apiRequests.requests.Add (CreateImageRequest (base64, FeatureType.IMAGE_PROPERTIES)); //second Request
+				apiRequests.requests.Add (CreateImageRequest (image_base64_str, FeatureType.IMAGE_PROPERTIES)); //second Request
 			}
 
 			string jsonData = JsonUtility.ToJson (apiRequests, false);

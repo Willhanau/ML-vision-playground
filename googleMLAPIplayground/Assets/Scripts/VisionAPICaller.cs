@@ -79,17 +79,16 @@ public class VisionAPICaller : VisionRestAPI{
 			string url = this.url + this.apiKey;
 			byte[] postData = System.Text.Encoding.Default.GetBytes(jsonData); //converts json string to bytes(turns the string into a file)
 			//sends post request to google api servers
-			using (WWW www = new WWW (url, postData, headers)) { //using statement does automatic garbage collection for the variable being initialized(www).
-				yield return www; //wait for returned json string from google servers
-				if (www.error == null) { //if no error
-					//Debug.Log(www.text.Replace("\n", "").Replace(" ", "")); //prints return json string(www.text) to Unity console, on one line with no spaces.
-					AnnotateImageResponses apiResponses = JsonUtility.FromJson<AnnotateImageResponses> (www.text); //takes www.text json and prarses it into above classes to be read from
+			using (WWW apiRequest = new WWW (url, postData, headers)) { //using statement does automatic garbage collection for the variable being initialized(www).
+				yield return apiRequest; //wait for returned json string from google servers
+				if (apiRequest.error == null) { //if no error
+					//Debug.Log(apiRequest.text.Replace("\n", "").Replace(" ", "")); //prints return json string(apiRequest.text) to Unity console, on one line with no spaces.
+					AnnotateImageResponses apiResponses = JsonUtility.FromJson<AnnotateImageResponses> (apiRequest.text); //takes www.text json and prarses it into above classes to be read from
 					CalculateTextColor(apiResponses);
 					DisplayResults (apiResponses);
 				} else { //there was an error
-					#if UNITY_EDITOR
-					Debug.Log ("Error: " + www.error);
-					#endif
+					StoreToScreenBuffer(apiRequest.error);
+					DisplayScreenBuffer ();
 				}
 			}
 		}

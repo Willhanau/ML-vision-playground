@@ -18,18 +18,17 @@ public class DeviceCam : MonoBehaviour {
 	[SerializeField]
 	private GameObject switchCameraButton;
 	private Quaternion rotFix;
-	private int appWidth;
-	private int appHeight;
 	private TrackDeviceOrientation track_dOrientation;
 	private DeviceOrientation dOrientation;
 	private int z_rotate = -90;
 	private int frontFacingCam_offset = 0;
 	private float zScaler;
-	private string savedImagePath;
 	private Vector3 webCamLocalScale;
+	private int appWidth;
+	private int appHeight;
+	private string savedImagePath;
 	[SerializeField]
 	private Image lastPhotoTaken;
-	private byte[] picPNG;
 	private Texture2D picTex;
 	public GameObject webCamPlane;
 
@@ -48,10 +47,6 @@ public class DeviceCam : MonoBehaviour {
 		#endif
 	}
 
-	private void setLastPhotoTexture(Sprite spriteImage){
-		lastPhotoTaken.sprite = spriteImage;
-	}
-
 	// Use this for initialization
 	void Start () {
 		#if UNITY_EDITOR
@@ -61,16 +56,7 @@ public class DeviceCam : MonoBehaviour {
 		zScaler = -1f;
 		savedImagePath = Application.persistentDataPath + "/appPicture.png";
 		#endif
-
-		if (File.Exists (savedImagePath)) {
-			load_Saved_Data ();
-			picPNG = File.ReadAllBytes (savedImagePath);
-			picTex = new Texture2D (appWidth, appHeight, TextureFormat.RGBA32, false);
-			picTex.LoadImage (picPNG);
-			picTex.Apply ();
-			setLastPhotoTexture(Sprite.Create(picTex, new Rect(0f, 0f, picTex.width, picTex.height), new Vector2(0.5f, 0.5f)));
-		}
-
+		load_Saved_Picture ();
 		visionAPI = this.GetComponent<VisionAPICaller> ();
 		webCamRenderer = webCamPlane.GetComponent<Renderer> ();
 		track_dOrientation = this.GetComponent<TrackDeviceOrientation> ();
@@ -153,9 +139,9 @@ public class DeviceCam : MonoBehaviour {
 		} else if (z_rotate == 180) {
 			RotateImageBy180 (appWidth, appHeight, image);
 		}
-		Texture2D picTex = new Texture2D (appWidth, appHeight, TextureFormat.RGBA32, false);
-		picTex.SetPixels (image);
-		return picTex;
+		Texture2D picTexture = new Texture2D (appWidth, appHeight, TextureFormat.RGBA32, false);
+		picTexture.SetPixels (image);
+		return picTexture;
 	}
 
 	private Color[] RotateImageBy90(int width, int height, Color[] arr){
@@ -186,23 +172,19 @@ public class DeviceCam : MonoBehaviour {
 		
 	public void TakePicture(){
 		if (webcamTexture != null) {
-			//Pause Cam to take picture
-			PauseAndUnPause ();
 			//take picture
 			Color[] picData = webcamTexture.GetPixels();
 			//convert Color[](picData) to Texture2D
 			picTex = RotatePictureImage (picData);
 			picTex.Apply ();
+			//set pictex as last photo taken which is displayed on screen
+			lastPhotoTaken.sprite = Sprite.Create(picTex, new Rect(0f, 0f, picTex.width, picTex.height), new Vector2(0.5f, 0.5f));
 			//convert Texture2D(picTex) to PNG file format
-			picPNG = picTex.EncodeToPNG();
+			byte[] picPNG = picTex.EncodeToPNG();
 			//save picture to app folder, overwrites existing picture in app folder
 			File.WriteAllBytes(savedImagePath, picPNG);
-			//set pictex as last photo taken which is displayed on screen
-			setLastPhotoTexture(Sprite.Create(picTex, new Rect(0f, 0f, picTex.width, picTex.height), new Vector2(0.5f, 0.5f)));
 			//Send raw image to vision api
 			visionAPI.DefineImageContents (picPNG);
-			//Unpause cam after processing image
-			PauseAndUnPause();
 		}
 	}
 
@@ -226,7 +208,7 @@ public class DeviceCam : MonoBehaviour {
 		}
 	}
 
-	public void PauseAndUnPause(){
+	private void PauseAndUnPause(){
 		if (webcamTexture != null) {
 			if (isCamPaused) {
 				webcamTexture.Play ();
@@ -237,29 +219,15 @@ public class DeviceCam : MonoBehaviour {
 		}
 	}
 
-	private void save_Device_Data(){
-		BinaryFormatter binForm = new BinaryFormatter ();
-		FileStream saveFile = File.Create(Application.persistentDataPath + "/playerInfo.dat");
-		DeviceCam device_Data = new DeviceCam ();
-		device_Data.appWidth = appWidth;
-		device_Data.appHeight = appHeight;
-		binForm.Serialize (saveFile, device_Data);
-		saveFile.Close ();
-	}
-
-	private void load_Saved_Data(){
-		if (File.Exists (Application.persistentDataPath + "/playerInfo.dat")) {
-			BinaryFormatter binForm = new BinaryFormatter ();
-			FileStream saveFile = File.Open (Application.persistentDataPath + "/playerInfo.dat", FileMode.Open);
-			DeviceCam device_Data = (DeviceCam)binForm.Deserialize (saveFile);
-			saveFile.Close ();
-			appWidth = device_Data.appWidth;
-			appHeight = device_Data.appHeight;
+	private void load_Saved_Picture(){
+		if (File.Exists (savedImagePath)) {
+			byte[] picPNG = File.ReadAllBytes (savedImagePath);
+			//Texture size doesn't matter because picTex.LoadImage will replace the size
+			picTex = new Texture2D (appWidth, appHeight);
+			picTex.LoadImage (picPNG);
+			picTex.Apply ();
+			lastPhotoTaken.sprite = Sprite.Create(picTex, new Rect(0f, 0f, picTex.width, picTex.height), new Vector2(0.5f, 0.5f));
 		}
-	}
-
-	void OnApplecationQuit(){
-		save_Device_Data ();
 	}
 
 }

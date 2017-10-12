@@ -3,7 +3,6 @@ using UnityEngine.UI;
 using System.Collections;
 using System.IO;
 using System.Runtime.InteropServices;
-using System.Runtime.Serialization.Formatters.Binary;
 
 public class DeviceCam : MonoBehaviour {
 

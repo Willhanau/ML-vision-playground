@@ -6,25 +6,22 @@ using UnityEngine.UI;
 public class UIClickEvents : MonoBehaviour {
 	
 	[SerializeField]
-	private GameObject uiPopup;
+	private GameObject uiPopUp;
 	[SerializeField]
-	private GameObject object_lastPhotoTaken;
-	private Image image_lastPhotoTaken;
+	private Text uiPopUpMessageText;
+	[SerializeField]
+	private Button yesButton;
 
 	void Start(){
-		image_lastPhotoTaken = object_lastPhotoTaken.GetComponent<Image> ();
-		if (image_lastPhotoTaken == null) {
-			object_lastPhotoTaken.SetActive (false);
-		}
+		
 	}
 
-	public void ShowYesNoPopup(){
-		if (image_lastPhotoTaken.sprite != null) {
-			uiPopup.SetActive (true);
+	public void OpenCloseYesNoPopup(string message){
+		if (!uiPopUp.activeSelf) {
+			uiPopUpMessageText.text = message;
+			uiPopUp.SetActive (true);
+		} else {
+			uiPopUp.SetActive (false);
 		}
-	}
-
-	public void CloseYesNoPopup(){
-		uiPopup.SetActive (false);
 	}
 }

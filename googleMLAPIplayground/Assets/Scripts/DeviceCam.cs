@@ -184,6 +184,9 @@ public class DeviceCam : MonoBehaviour {
 			File.WriteAllBytes(savedImagePath, picPNG);
 			//Send raw image to vision api
 			visionAPI.DefineImageContents (picPNG);
+			if (!lastPhotoTaken.gameObject.activeSelf) {
+				lastPhotoTaken.gameObject.SetActive (true);
+			}
 		}
 	}
 
@@ -225,7 +228,9 @@ public class DeviceCam : MonoBehaviour {
 			picTex = new Texture2D (appWidth, appHeight);
 			picTex.LoadImage (picPNG);
 			picTex.Apply ();
-			lastPhotoTaken.sprite = Sprite.Create(picTex, new Rect(0f, 0f, picTex.width, picTex.height), new Vector2(0.5f, 0.5f));
+			lastPhotoTaken.sprite = Sprite.Create (picTex, new Rect (0f, 0f, picTex.width, picTex.height), new Vector2 (0.5f, 0.5f));
+		} else {
+			lastPhotoTaken.gameObject.SetActive(false);
 		}
 	}
 

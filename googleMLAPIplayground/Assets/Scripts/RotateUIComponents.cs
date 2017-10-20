@@ -9,31 +9,43 @@ public class RotateUIComponents : MonoBehaviour {
 	private TrackDeviceOrientation track_dOrientation;
 	private DeviceOrientation dOrientation;
 	private DeviceOrientation lastOrientation;
-	private int z_rotate = 0;
+	private Quaternion slerpTo_UI_ElementRotation;
+	private float z_rotate = 0;
+	private float rotationSpeed = 2.0f;
+	private int ui_ListSize;
+
+	void Start(){
+		ui_ListSize = ui_List.Length;
+	}
 
 	// Update is called once per frame
 	void Update () {
 		dOrientation = track_dOrientation.GetDeviceOrientation ();
 		if (dOrientation != lastOrientation) {
-			RotateObjects ();
+			FindAngleToRotateUI ();
+		} else {
+			SlerpRotateObjects ();
 		}
 		lastOrientation = dOrientation;
 	}
 
-	private void RotateObjects(){
+	private void FindAngleToRotateUI(){
 		if (dOrientation == DeviceOrientation.Portrait) {
-			z_rotate = 0;
+			z_rotate = 0f;
 		} else if (dOrientation == DeviceOrientation.PortraitUpsideDown) {
-			z_rotate = 180;
+			z_rotate = 180f;
 		} else if (dOrientation == DeviceOrientation.LandscapeRight) {
-			z_rotate = 90;
+			z_rotate = 90f;
 		} else if (dOrientation == DeviceOrientation.LandscapeLeft){
-			z_rotate = -90;
+			z_rotate = -90f;
 		}
-		Quaternion textRotation = Quaternion.identity;
-		textRotation *= Quaternion.Euler (0, 0, z_rotate);
-		for (int i = 0; i < ui_List.Length; i++) {
-			ui_List[i].transform.rotation = textRotation;
+		slerpTo_UI_ElementRotation = Quaternion.identity;
+		slerpTo_UI_ElementRotation *= Quaternion.Euler (0, 0, z_rotate);
+	}
+
+	private void SlerpRotateObjects(){
+		for (int i = 0; i < ui_ListSize; i++) {
+			ui_List [i].transform.rotation = Quaternion.Slerp (ui_List [i].transform.rotation, slerpTo_UI_ElementRotation, Time.deltaTime * rotationSpeed);
 		}
 	}
 

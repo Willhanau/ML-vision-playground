@@ -23,11 +23,10 @@ public class PinchZoom : MonoBehaviour {
 	void Update()
 	{
 		// If there are two touches on the device...
-		if (Input.touchCount == 2)
-		{
+		if (Input.touchCount == 2) {
 			// Store both touches.
-			touchZero = Input.GetTouch(0);
-			touchOne = Input.GetTouch(1);
+			touchZero = Input.GetTouch (0);
+			touchOne = Input.GetTouch (1);
 
 			// Find the position in the previous frame of each touch.
 			touchZeroPrevPos = touchZero.position - touchZero.deltaPosition;
@@ -41,14 +40,14 @@ public class PinchZoom : MonoBehaviour {
 			deltaMagnitudeDiff = prevTouchDeltaMag - touchDeltaMag;
 
 			// If the camera is perspective(not orthographic)...
-			if (!mainCamera.orthographic)
-			{
+			if (!mainCamera.orthographic) {
 				// Otherwise change the field of view based on the change in distance between the touches.
 				mainCamera.fieldOfView += deltaMagnitudeDiff * perspectiveZoomSpeed;
 
 				// Clamp the field of view to make sure it's between 0 and 180.
-				mainCamera.fieldOfView = Mathf.Clamp(mainCamera.fieldOfView, minCameraFieldOfView, maxCameraFieldOfView);
+				mainCamera.fieldOfView = Mathf.Clamp (mainCamera.fieldOfView, minCameraFieldOfView, maxCameraFieldOfView);
 			}
 		}
+
 	}
 }

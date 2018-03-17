@@ -2,9 +2,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-public class RotateUIComponents : MonoBehaviour {
-	[SerializeField]
-	private RectTransform[] ui_List;
+public class RotateUIComponent : MonoBehaviour {
 	[SerializeField]
 	private TrackDeviceOrientation track_dOrientation;
 	private DeviceOrientation dOrientation;
@@ -12,10 +10,9 @@ public class RotateUIComponents : MonoBehaviour {
 	private Quaternion slerpTo_UI_ElementRotation;
 	private float z_rotate = 0;
 	private float rotationSpeed = 4.0f;
-	private int ui_ListSize;
 
 	void Start(){
-		ui_ListSize = ui_List.Length;
+		
 	}
 
 	// Update is called once per frame
@@ -24,12 +21,13 @@ public class RotateUIComponents : MonoBehaviour {
 		if (dOrientation != lastOrientation) {
 			FindAngleToRotateUI ();
 		} else {
-			SlerpRotateObjects ();
+			SlerpRotateObject ();
 		}
 		lastOrientation = dOrientation;
 	}
 
 	private void FindAngleToRotateUI(){
+		lastOrientation = dOrientation;
 		if (dOrientation == DeviceOrientation.Portrait) {
 			z_rotate = 0f;
 		} else if (dOrientation == DeviceOrientation.PortraitUpsideDown) {
@@ -43,10 +41,8 @@ public class RotateUIComponents : MonoBehaviour {
 		slerpTo_UI_ElementRotation *= Quaternion.Euler (0, 0, z_rotate);
 	}
 
-	private void SlerpRotateObjects(){
-		for (int i = 0; i < ui_ListSize; i++) {
-			ui_List [i].transform.rotation = Quaternion.Slerp (ui_List [i].transform.rotation, slerpTo_UI_ElementRotation, Time.deltaTime * rotationSpeed);
-		}
+	public void SlerpRotateObject(){
+		this.transform.rotation = Quaternion.Slerp (this.transform.rotation, slerpTo_UI_ElementRotation, Time.deltaTime * rotationSpeed);
 	}
 
 }

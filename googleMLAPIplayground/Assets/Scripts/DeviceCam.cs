@@ -28,6 +28,7 @@ public class DeviceCam : MonoBehaviour {
 	private string savedImagePath;
 	[SerializeField]
 	private Image lastPhotoTaken;
+	private DeviceOrientation lastPhotoTakenOrientation;
 	private Texture2D picTex;
 	public GameObject webCamPlane;
 
@@ -138,6 +139,8 @@ public class DeviceCam : MonoBehaviour {
 		} else if (z_rotate == 180) {
 			RotateImageBy180 (appWidth, appHeight, image);
 		}
+		lastPhotoTakenOrientation = dOrientation;
+		lastPhotoTaken.GetComponent<UIClickEvents> ().LastPhotoTakenOrientation = lastPhotoTakenOrientation;
 		Texture2D picTexture = new Texture2D (appWidth, appHeight, TextureFormat.RGBA32, false);
 		picTexture.SetPixels (image);
 		return picTexture;
@@ -229,6 +232,12 @@ public class DeviceCam : MonoBehaviour {
 			picTex.LoadImage (picPNG);
 			picTex.Apply ();
 			lastPhotoTaken.sprite = Sprite.Create (picTex, new Rect (0f, 0f, picTex.width, picTex.height), new Vector2 (0.5f, 0.5f));
+			if (picTex.width > picTex.height) {
+				lastPhotoTakenOrientation = DeviceOrientation.LandscapeRight;
+			} else {
+				lastPhotoTakenOrientation = DeviceOrientation.Portrait;
+			}
+			lastPhotoTaken.GetComponent<UIClickEvents> ().LastPhotoTakenOrientation = lastPhotoTakenOrientation;
 		} else {
 			lastPhotoTaken.gameObject.SetActive(false);
 		}

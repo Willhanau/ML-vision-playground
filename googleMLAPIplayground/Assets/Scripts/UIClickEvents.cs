@@ -41,21 +41,21 @@ public class UIClickEvents : MonoBehaviour {
 			previous_Rotation = lastPhotoTaken.transform.rotation;
 			lastPhotoTaken.anchorMin = new Vector2 (0, 0);
 			lastPhotoTaken.anchorMax = new Vector2 (1, 1);
-			savePhotoButton.SetActive (true);
-			isMinimized = !isMinimized;
 			if (lastPhotoTakenOrientation == DeviceOrientation.LandscapeLeft || lastPhotoTakenOrientation == DeviceOrientation.LandscapeRight) {
 				rotateThisComponent.enabled = false;
-				lastPhotoTaken.GetComponent<RectTransform>().rotation = Quaternion.Euler (0, 0, 90);
 				savePhotoButton.GetComponent<RectTransform> ().localPosition = new Vector3 (0, -270, 0);
-				lastPhotoTaken.offsetMin = new Vector2 (-258f, 258f);
-				lastPhotoTaken.offsetMax = new Vector2 (258f, -258f);
+				lastPhotoTaken.GetComponent<RectTransform>().rotation = Quaternion.Euler (0, 0, 90);
+				lastPhotoTaken.offsetMin = new Vector2 (-258.5f, 258.5f);
+				lastPhotoTaken.offsetMax = new Vector2 (258.5f, -258.5f);
 			} else {
 				rotateThisComponent.enabled = false;
-				lastPhotoTaken.GetComponent<RectTransform>().rotation = Quaternion.Euler (0, 0, 0);
 				savePhotoButton.GetComponent<RectTransform> ().localPosition = new Vector3 (0, -500, 0);
+				lastPhotoTaken.GetComponent<RectTransform>().rotation = Quaternion.Euler (0, 0, 0);
 				lastPhotoTaken.offsetMin = new Vector2 (0, 0);
 				lastPhotoTaken.offsetMax = new Vector2 (0, 0);
 			}
+			savePhotoButton.SetActive (true);
+			isMinimized = !isMinimized;
 		} else {
 			savePhotoButton.SetActive (false);
 			lastPhotoTaken.anchorMin = previous_anchorMin;

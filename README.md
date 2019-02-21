@@ -1,2 +1,2 @@
 # MLplayground
-Demo of ML google API for Unity3D. 
+Demo of google ML Vision API in Unity3D. 

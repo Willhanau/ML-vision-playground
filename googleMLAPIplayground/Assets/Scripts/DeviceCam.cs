@@ -154,6 +154,7 @@ public class DeviceCam : MonoBehaviour {
 		return newArr;
 	}
 
+	//TODO: use a pointer
 	private void RotateImageBy180(int width, int height, Color[] arr){
 		int size = (width * height) - 1;
 		Color temp;
@@ -185,8 +186,10 @@ public class DeviceCam : MonoBehaviour {
 			byte[] picPNG = picTex.EncodeToPNG();
 			//save picture to app folder, overwrites existing picture in app folder
 			File.WriteAllBytes(savedImagePath, picPNG);
+			//Convert picture to JPEG
+			byte[] picJPG = picTex.EncodeToJPG();
 			//Send raw image to vision api
-			visionAPI.DefineImageContents (picPNG);
+			visionAPI.DefineImageContents (picJPG);
 			if (!lastPhotoTaken.gameObject.activeSelf) {
 				lastPhotoTaken.gameObject.SetActive (true);
 			}

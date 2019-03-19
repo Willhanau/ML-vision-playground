@@ -107,10 +107,18 @@ public class VisionAPICaller : VisionRestAPI{
 				greenProp += apiResponses.responses [n].imagePropertiesAnnotation.dominantColors.colors [i].color.green;
 				blueProp += apiResponses.responses [n].imagePropertiesAnnotation.dominantColors.colors [i].color.blue;
 			}
-			textColor.r = Mathf.Abs ((redProp / i) - 255) / 255f;
-			textColor.g = Mathf.Abs ((greenProp / i) - 255) / 255f;
-			textColor.b = Mathf.Abs ((blueProp / i) - 255) / 255f;
+			/*
+			textColor.r = (255 - (redProp / i)) / 255f;
+			textColor.g = (255 - (greenProp / i)) / 255f;
+			textColor.b = (255 - (blueProp / i)) / 255f;
+			*/
+			textColor.r = ((~(redProp / i)) & 255) / 255f;
+			textColor.g = ((~(greenProp / i)) & 255) / 255f;
+			textColor.b = ((~(blueProp / i)) & 255) / 255f;
 			textColor.a = 1f;
+			Debug.Log ("R = " + textColor.r + "\n");
+			Debug.Log ("G = " + textColor.g + "\n");
+			Debug.Log ("B = " + textColor.b + "\n");
 		}
 	}
 

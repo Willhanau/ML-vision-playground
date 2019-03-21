@@ -8,9 +8,6 @@ public class VisionAPICaller : VisionRestAPI{
 	private string url = "https://vision.googleapis.com/v1/images:annotate?key=";
 	[SerializeField]
 	private string apiKey = "";
-	/// <summary>
-	/// The max results.
-	/// </summary>
 	public int maxResults = 5;
 	private FeatureType featureType = FeatureType.LABEL_DETECTION;
 	private Dictionary<string, string> headers;
@@ -23,6 +20,9 @@ public class VisionAPICaller : VisionRestAPI{
 	private DeviceOrientation dOrientation;
 	private int z_rotate = 0;
 	private UnityEngine.Color textColor = UnityEngine.Color.red;
+	private GameObject text;
+	AnnotateImageRequests apiRequests;
+	AnnotateImageRequest defineRequest;
 
 	//Use this for initialization
 	void Start () {
@@ -36,6 +36,12 @@ public class VisionAPICaller : VisionRestAPI{
 		}
 		#endif
 
+		apiRequests = new AnnotateImageRequests ();
+		apiRequests.requests = new List<AnnotateImageRequest> ();
+
+		defineRequest = new AnnotateImageRequest();
+		defineRequest.image = new Image();
+		defineRequest.features = new List<Feature>();
 	}
 
 	/// <summary>
@@ -46,9 +52,7 @@ public class VisionAPICaller : VisionRestAPI{
 		if (this.apiKey != null) {
 			string image_base64_str = System.Convert.ToBase64String (image); //converts image(byte[]) to a base64 string
 
-			AnnotateImageRequests apiRequests = new AnnotateImageRequests ();
-			apiRequests.requests = new List<AnnotateImageRequest> ();
-
+			apiRequests.requests.Clear ();
 			apiRequests.requests.Add (CreateImageRequest (image_base64_str, this.featureType)); //first Request
 
 			if (this.featureType != FeatureType.IMAGE_PROPERTIES) {
@@ -61,10 +65,9 @@ public class VisionAPICaller : VisionRestAPI{
 	}
 
 	private AnnotateImageRequest CreateImageRequest(string base64, FeatureType featureType){
-		AnnotateImageRequest defineRequest = new AnnotateImageRequest();
-		defineRequest.image = new Image();
 		defineRequest.image.content = base64;
-		defineRequest.features = new List<Feature>();
+
+		//defineRequest.features.Clear();
 
 		Feature feature = new Feature();
 		feature.type = featureType.ToString();
@@ -88,9 +91,9 @@ public class VisionAPICaller : VisionRestAPI{
 					DisplayResults (apiResponses);
 				} else { //there was an error
 					StoreToScreenBuffer(apiRequest.error);
-					DisplayScreenBuffer ();
 				}
 			}
+			DisplayScreenBuffer();
 		}
 	}
 		
@@ -116,9 +119,6 @@ public class VisionAPICaller : VisionRestAPI{
 			textColor.g = ((~(greenProp / i)) & 255) / 255f;
 			textColor.b = ((~(blueProp / i)) & 255) / 255f;
 			textColor.a = 1f;
-			Debug.Log ("R = " + textColor.r + "\n");
-			Debug.Log ("G = " + textColor.g + "\n");
-			Debug.Log ("B = " + textColor.b + "\n");
 		}
 	}
 
@@ -136,7 +136,11 @@ public class VisionAPICaller : VisionRestAPI{
 			Quaternion textRotation = new Quaternion (transform.rotation.x, transform.rotation.y, transform.rotation.z, transform.rotation.w);
 			textRotation *= Quaternion.Euler (0, 0, z_rotate);
 
-			GameObject text = Instantiate (output3dTextPrefab, output3dTextLocation.transform.position, textRotation);
+
+			if (text != null) {
+				text.SetActive (false);
+			}
+			text = Instantiate (output3dTextPrefab, output3dTextLocation.transform.position, textRotation);
 			text.GetComponent<TextMesh> ().text = screenBuffer;
 			text.GetComponent<TextMesh> ().color = textColor;
 			screenBuffer = "";
@@ -184,7 +188,6 @@ public class VisionAPICaller : VisionRestAPI{
 				faceAnnotation = "Headwear: " + apiResponses.responses [0].faceAnnotations [i].headwearLikelihood; //headwear liklihood
 				StoreToScreenBuffer (faceAnnotation);
 			}
-			DisplayScreenBuffer();
 		}
 	}
 
@@ -195,7 +198,6 @@ public class VisionAPICaller : VisionRestAPI{
 				string entityDescription = apiResponses.responses [0].labelAnnotations [i].description;
 				StoreToScreenBuffer (entityDescription);
 			}
-			DisplayScreenBuffer();
 		}
 	}
 
@@ -206,7 +208,6 @@ public class VisionAPICaller : VisionRestAPI{
 				string entityDescription = apiResponses.responses [0].landmarkAnnotations [i].description;
 				StoreToScreenBuffer (entityDescription);
 			}
-			DisplayScreenBuffer();
 		}
 	}
 
@@ -217,7 +218,6 @@ public class VisionAPICaller : VisionRestAPI{
 				string entityDescription = apiResponses.responses [0].logoAnnotations [i].description;
 				StoreToScreenBuffer (entityDescription);
 			}
-			DisplayScreenBuffer();
 		}
 	}
 
@@ -228,7 +228,6 @@ public class VisionAPICaller : VisionRestAPI{
 				string entityDescription = apiResponses.responses [0].textAnnotations[i].description;
 				StoreToScreenBuffer (entityDescription);
 			}
-			DisplayScreenBuffer ();
 		}
 	}
 
@@ -237,7 +236,6 @@ public class VisionAPICaller : VisionRestAPI{
 		if (this.featureType == FeatureType.DOCUMENT_TEXT_DETECTION) {
 			string textAnnotation = apiResponses.responses [0].fullTextAnnotation.text;
 			StoreToScreenBuffer (textAnnotation);
-			DisplayScreenBuffer();
 		}
 	}
 
@@ -252,7 +250,6 @@ public class VisionAPICaller : VisionRestAPI{
 			StoreToScreenBuffer (safeSearchAnnotation);
 			safeSearchAnnotation = "Violent Image: " + apiResponses.responses [0].safeSearchAnnotation.violence; //violent image
 			StoreToScreenBuffer (safeSearchAnnotation);
-			DisplayScreenBuffer();
 		}
 	}
 
@@ -265,7 +262,6 @@ public class VisionAPICaller : VisionRestAPI{
 					+ apiResponses.responses [0].imagePropertiesAnnotation.dominantColors.colors[i].color.blue + ")";
 				StoreToScreenBuffer (imageColor);
 			}
-			DisplayScreenBuffer();
 		}
 	}
 
@@ -279,7 +275,6 @@ public class VisionAPICaller : VisionRestAPI{
 					StoreToScreenBuffer (cropVertex);
 				}
 			}
-			DisplayScreenBuffer();
 		}
 	}
 
@@ -303,7 +298,6 @@ public class VisionAPICaller : VisionRestAPI{
 				webImageURL = "Visually Similar Image URL: " + apiResponses.responses [0].webDetection.visuallySimilarImages[i].url;
 				StoreToScreenBuffer (webImageURL);
 			}
-			DisplayScreenBuffer();
 		}
 	}
 

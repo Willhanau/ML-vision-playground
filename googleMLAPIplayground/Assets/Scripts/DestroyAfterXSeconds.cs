@@ -8,4 +8,7 @@ public class DestroyAfterXSeconds : MonoBehaviour {
 	void Start () {
 		Destroy (this.gameObject, numSeconds);		
 	}
+	void OnDisable(){
+		Destroy (this.gameObject);
+	}
 }
